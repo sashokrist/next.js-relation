@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Action {
+  id               BigInt    @id @default(autoincrement())
+  business_id      BigInt?
+  process          String?
+  action_type      String
+  description      String
+  status_slug      String
+  status           Status?   @relation("StatusToAction", fields: [status_slug], references: [slug])
+  due_at           DateTime
+  completed_at     DateTime?
+  assigned_user_id BigInt?
+
+  business       Business?      @relation(fields: [business_id], references: [id])
+  assigned_user  User?          @relation("UserToAction", fields: [assigned_user_id], references: [id])
+  action_process ActionProcess? @relation(fields: [process], references: [process])
+
+  @@map("actions")
+}
+
+model ActionProcess {
+  process     String    @id
+  description String
+  created_at  DateTime  @default(now()) @db.DateTime(0)
+  created_by  BigInt    @default(1)
+  updated_at  DateTime? @db.DateTime(0)
+  updated_by  BigInt?
+  deleted_at  DateTime? @db.DateTime(0)
+  deleted_by  BigInt?
+
+  actions Action[]
+
+  @@map("actions_processes")
+}
+
+model Business {
+  id            BigInt   @id @default(autoincrement())
+  business_name String?
+  actions       Action[]
+
+  @@map("businesses")
+}
+
+model User {
+  id                       BigInt  @id @default(autoincrement())
+  first_name               String?
+  last_name                String?
+  profile_picture_filename String?
+
+  actions Action[] @relation("UserToAction")
+
+  @@map("users")
+}
+
+model Status {
+  id         BigInt    @id @default(autoincrement())
+  slug       String    @unique
+  name       String
+  type       String
+  position   Int
+  colour     String?   @db.VarChar(45)
+  created_at DateTime  @default(now()) @db.DateTime(0)
+  created_by BigInt    @default(1)
+  updated_at DateTime? @db.DateTime(0)
+  updated_by BigInt?
+  deleted_at DateTime? @db.DateTime(0)
+  deleted_by BigInt?
+
+  actions Action[] @relation("StatusToAction")
+
+  @@index([slug], map: "statuses_slug_index")
+  @@map("statuses")
+}
