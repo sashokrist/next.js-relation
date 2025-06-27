@@ -1,23 +1,6 @@
 'use client';
 import {useEffect, useState} from 'react';
 
-// interface Action {
-//     id: string;
-//     business_id?: string;
-//     process: string | null;
-//     description: string;
-//     due_at: string;
-//     completed_at: string | null;
-//     status_slug: string;
-//     status_name?: string;
-//     assigned_user_id?: string;
-//     business: { business_name: string | null };
-//     assigned_user: {
-//         first_name: string | null;
-//         last_name: string | null;
-//         profile_picture_filename: string | null;
-//     } | null;
-// }
 interface Action {
     id: string;
     business_id?: string;
@@ -40,19 +23,19 @@ interface Action {
 export default function ActionsPage() {
 
     const [actions, setActions] = useState<Action[]>([]);
+    const [totalCompleted, setTotalCompleted] = useState<number>(0);
 
     useEffect(() => {
         fetch('/api/actions')
             .then(res => res.json())
             .then(data => {
-                console.log("Actions:", data); // 👈 Add this line
-                setActions(data);
+                console.log("Fetched data:", data);
+                setActions(data.actions);
+                setTotalCompleted(data.totalCompleted);
             });
     }, []);
 
-    const totalOutstanding = actions.filter(a => a.status_name?.toLowerCase() === 'outstanding').length;
-
-    const totalCompleted = actions.filter(a => a.completed_at !== null).length;
+    const totalOutstanding = actions.filter(a => a.status_slug === 'outstanding').length;
 
     return (
         <div className="container my-5">
