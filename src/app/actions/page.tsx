@@ -1,5 +1,5 @@
-// app/actions/page.tsx
 'use client';
+
 import { useEffect, useState } from 'react';
 
 interface Action {
@@ -23,53 +23,46 @@ interface Action {
 
 export default function ActionsPage() {
   const [actions, setActions] = useState<Action[]>([]);
-  const [totalCompleted, setTotalCompleted] = useState<number>(0);
-  const [sortField, setSortField] = useState<string>('id');
+  const [totalCompleted, setTotalCompleted] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
+  const [sortField, setSortField] = useState('id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [search, setSearch] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('outstanding');
-  const [showFilter, setShowFilter] = useState<boolean>(false);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [showFilter, setShowFilter] = useState(false);
 
-  const fetchData = (
-    field: string = 'id',
-    direction: 'asc' | 'desc' = 'asc',
-    searchText: string = '',
-    status: string = ''
-  ) => {
+  const fetchData = async () => {
     const params = new URLSearchParams({
-      sortField: field,
-      sortDirection: direction,
+      page: page.toString(),
+      perPage: '10',
+      sortField,
+      sortDirection,
     });
+    if (search) params.append('search', search);
+    if (statusFilter) params.append('status', statusFilter);
 
-    if (searchText.trim()) params.append('search', searchText.trim());
-    if (status) params.append('status', status);
-
-    fetch(`/api/actions?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setActions(data.actions);
-        setTotalCompleted(data.totalCompleted);
-      });
+    const res = await fetch(`/api/actions?${params.toString()}`);
+    const data = await res.json();
+    setActions(data.actions);
+    setTotalCompleted(data.totalCompleted);
+    setTotalPages(data.totalPages);
   };
 
   useEffect(() => {
-    fetchData(sortField, sortDirection, search, statusFilter);
-  }, [sortField, sortDirection, statusFilter]);
+    fetchData();
+  }, [page, sortField, sortDirection, statusFilter]);
+
+  const totalOutstanding = actions.filter((a) => a.status_slug === 'outstanding').length;
 
   const handleSort = (field: string) => {
-    if (field === sortField) {
+    if (sortField === field) {
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortField(field);
       setSortDirection('asc');
     }
   };
-
-  const handleRefresh = () => {
-    fetchData(sortField, sortDirection, search, statusFilter);
-  };
-
-  const totalOutstanding = actions.filter((a) => a.status_slug === 'outstanding').length;
 
   return (
     <div className="container my-4">
@@ -82,7 +75,10 @@ export default function ActionsPage() {
         <div className="col-md-6">
           <div className="card shadow-sm border-start border-4 border-warning">
             <div className="card-body text-center">
-              <h6 className="text-muted">Total outstanding actions</h6>
+              <h6 className="text-muted">
+                <i className="fas fa-exclamation-circle text-warning me-2"></i>
+                Total outstanding actions
+              </h6>
               <h2 className="text-warning fw-bold">{totalOutstanding}</h2>
             </div>
           </div>
@@ -90,7 +86,10 @@ export default function ActionsPage() {
         <div className="col-md-6">
           <div className="card shadow-sm border-start border-4 border-success">
             <div className="card-body text-center">
-              <h6 className="text-muted">Total completed actions</h6>
+              <h6 className="text-muted">
+                <i className="fas fa-check-circle text-success me-2"></i>
+                Total completed actions
+              </h6>
               <h2 className="text-success fw-bold">{totalCompleted}</h2>
             </div>
           </div>
@@ -105,20 +104,20 @@ export default function ActionsPage() {
           <input
             type="text"
             className="form-control"
-            placeholder="Enter search text..."
+            placeholder="Search..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') fetchData(sortField, sortDirection, search, statusFilter);
+              if (e.key === 'Enter') fetchData();
             }}
           />
         </div>
         <div className="d-flex gap-2">
-          <button className="btn btn-outline-secondary" onClick={handleRefresh}>
+          <button className="btn btn-outline-secondary" onClick={fetchData}>
             <i className="bi bi-arrow-repeat" /> Refresh
           </button>
           <button className="btn btn-outline-secondary" onClick={() => handleSort('id')}>
-            <i className="bi bi-sort-down" /> Sort by ID ({sortDirection})
+            <i className="bi bi-sort-down" /> Sort ID ({sortDirection})
           </button>
           <button className="btn btn-outline-secondary" onClick={() => setShowFilter(true)}>
             <i className="bi bi-funnel" /> Filter
@@ -126,11 +125,11 @@ export default function ActionsPage() {
         </div>
       </div>
 
-      {/* Slide-in Filter Panel */}
+      {/* Filter Sidebar */}
       <div className={`offcanvas offcanvas-end ${showFilter ? 'show' : ''}`} style={{ visibility: showFilter ? 'visible' : 'hidden' }}>
         <div className="offcanvas-header">
           <h5 className="offcanvas-title">Filter</h5>
-          <button type="button" className="btn-close" onClick={() => setShowFilter(false)}></button>
+          <button className="btn-close" onClick={() => setShowFilter(false)}></button>
         </div>
         <div className="offcanvas-body">
           <div className="mb-3">
@@ -139,9 +138,9 @@ export default function ActionsPage() {
               className="form-select"
               value={statusFilter}
               onChange={(e) => {
-                const value = e.target.value;
-                setStatusFilter(value);
-                setShowFilter(false); // ✅ closes the sidebar
+                setStatusFilter(e.target.value);
+                setPage(1);
+                setShowFilter(false);
               }}
             >
               <option value="">All</option>
@@ -157,39 +156,47 @@ export default function ActionsPage() {
           <thead className="table-light">
             <tr>
               <th onClick={() => handleSort('id')} style={{ cursor: 'pointer' }}>Id</th>
-              <th onClick={() => handleSort('business_name')} style={{ cursor: 'pointer' }}>Business name</th>
-              <th onClick={() => handleSort('process')} style={{ cursor: 'pointer' }}>Process</th>
-              <th onClick={() => handleSort('description')} style={{ cursor: 'pointer' }}>Description</th>
-              <th onClick={() => handleSort('due_at')} style={{ cursor: 'pointer' }}>Due date/time</th>
-              <th onClick={() => handleSort('completed_at')} style={{ cursor: 'pointer' }}>Completed date/time</th>
+              <th>Business</th>
+              <th>Process</th>
+              <th>Description</th>
+              <th>Due</th>
+              <th>Completed</th>
               <th>Status</th>
-              <th>Assigned to</th>
+              <th>Assigned</th>
             </tr>
           </thead>
           <tbody>
             {actions.map((action) => (
               <tr key={action.id}>
-                <td><code className="text-danger">#{action.id}</code></td>
+                <td>#{action.id}</td>
                 <td>{action.business?.business_name ?? '-'}</td>
                 <td>{action.process_description ?? action.process}</td>
                 <td>{action.description}</td>
                 <td>{new Date(action.due_at).toLocaleString()}</td>
                 <td>{action.completed_at ? new Date(action.completed_at).toLocaleString() : 'N/A'}</td>
-                <td>
-                  <span className="badge rounded-pill bg-warning text-dark fw-semibold px-3">
-                    {action.status_name ?? 'Outstanding'}
-                  </span>
-                </td>
+                <td>{action.status_name}</td>
                 <td>
                   {action.assigned_user
                     ? `${action.assigned_user.first_name ?? ''} ${action.assigned_user.last_name ?? ''}`
-                    : <span className="text-muted fst-italic">Unassigned</span>}
+                    : 'Unassigned'}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <nav className="d-flex justify-content-center mt-4">
+        <ul className="pagination">
+          {[...Array(totalPages)].map((_, i) => (
+            <li key={i} className={`page-item ${page === i + 1 ? 'active' : ''}`}>
+              <button className="page-link" onClick={() => setPage(i + 1)}>
+                {i + 1}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </nav>
     </div>
   );
 }
