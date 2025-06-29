@@ -72,6 +72,20 @@ export default function ActionsPage() {
 
   return (
     <div className="container my-4">
+      {/* Top Bar with Business and User Info */}
+<div className="d-flex justify-content-between align-items-center mb-3 p-3 border-bottom">
+  <div className="d-flex align-items-center gap-2">
+    <i className="fas fa-building text-secondary bg-light p-2 rounded" />
+    <div>
+      <strong>Q A &amp; Z Limited</strong> <span className="text-muted">#1153</span>
+    </div>
+  </div>
+  <div className="text-end">
+    <div><strong>Test Test</strong></div>
+    <small className="text-muted">User Id: #163</small>
+  </div>
+</div>
+
       <div className="d-flex justify-content-between align-items-center mb-2">
         <h5>📋 List of Actions</h5>
         <button className="btn btn-outline-success btn-sm">Help</button>
