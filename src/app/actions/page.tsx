@@ -1,104 +1,4 @@
-// 'use client';
-// import {useEffect, useState} from 'react';
-//
-// interface Action {
-//     id: string;
-//     business_id?: string;
-//     process: string | null;
-//     process_description?: string;
-//     description: string;
-//     due_at: string;
-//     completed_at: string | null;
-//     status_slug: string;
-//     status_name?: string;
-//     assigned_user_id?: string;
-//     business: { business_name: string | null };
-//     assigned_user: {
-//         first_name: string | null;
-//         last_name: string | null;
-//         profile_picture_filename: string | null;
-//     } | null;
-// }
-//
-// export default function ActionsPage() {
-//
-//     const [actions, setActions] = useState<Action[]>([]);
-//     const [totalCompleted, setTotalCompleted] = useState<number>(0);
-//
-//     useEffect(() => {
-//         fetch('/api/actions')
-//             .then(res => res.json())
-//             .then(data => {
-//                 console.log("Fetched data:", data);
-//                 setActions(data.actions);
-//                 setTotalCompleted(data.totalCompleted);
-//             });
-//     }, []);
-//
-//     const totalOutstanding = actions.filter(a => a.status_slug === 'outstanding').length;
-//
-//     return (
-//         <div className="container my-5">
-//             <h1 className="mb-4">📋 List of Actions</h1>
-//             <div className="row mb-4">
-//                 <div className="col-md-6">
-//                     <div className="card border-warning shadow-sm">
-//                         <div className="card-body text-center">
-//                             <h5 className="card-title text-warning">Outstanding Actions</h5>
-//                             <p className="display-6 fw-bold">{totalOutstanding}</p>
-//                         </div>
-//                     </div>
-//                 </div>
-//                 <div className="col-md-6">
-//                     <div className="card border-success shadow-sm">
-//                         <div className="card-body text-center">
-//                             <h5 className="card-title text-success">Completed Actions</h5>
-//                             <p className="display-6 fw-bold">{totalCompleted}</p>
-//                         </div>
-//                     </div>
-//                 </div>
-//             </div>
-//             <div className="table-responsive">
-//                 <table className="table table-bordered table-striped align-middle">
-//                     <thead className="table-light">
-//                     <tr>
-//                         <th>Id</th>
-//                         <th>Business name</th>
-//                         <th>Process</th>
-//                         <th>Description</th>
-//                         <th>Due date/time</th>
-//                         <th>Completed date/time</th>
-//                         <th>Status</th>
-//                         <th>Assigned to</th>
-//                     </tr>
-//                     </thead>
-//                     <tbody>
-//                     {actions.map(action => (
-//                         <tr key={action.id}>
-//                             <td><code>#{action.id}</code></td>
-//                             <td>{action.business?.business_name ?? '-'}</td>
-//                             <td>{action.process_description ?? action.process}</td>
-//                             <td>{action.description}</td>
-//                             <td>{new Date(action.due_at).toLocaleString()}</td>
-//                             <td>{action.completed_at ? new Date(action.completed_at).toLocaleString() : 'N/A'}</td>
-//                             <td>
-//                               <span className="badge bg-warning text-dark">
-//                                 {action.status_name}
-//                               </span>
-//                             </td>
-//                             <td>
-//                                 {action.assigned_user
-//                                     ? `${action.assigned_user.first_name ?? ''} ${action.assigned_user.last_name ?? ''}`
-//                                     : <span className="text-muted fst-italic">Unassigned</span>}
-//                             </td>
-//                         </tr>
-//                     ))}
-//                     </tbody>
-//                 </table>
-//             </div>
-//         </div>
-//     );
-// }
+// app/actions/page.tsx
 'use client';
 import { useEffect, useState } from 'react';
 
@@ -127,20 +27,22 @@ export default function ActionsPage() {
   const [sortField, setSortField] = useState<string>('id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [search, setSearch] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('outstanding');
+  const [showFilter, setShowFilter] = useState<boolean>(false);
 
   const fetchData = (
     field: string = 'id',
     direction: 'asc' | 'desc' = 'asc',
-    searchText: string = ''
+    searchText: string = '',
+    status: string = ''
   ) => {
     const params = new URLSearchParams({
       sortField: field,
       sortDirection: direction,
     });
 
-    if (searchText.trim()) {
-      params.append('search', searchText.trim());
-    }
+    if (searchText.trim()) params.append('search', searchText.trim());
+    if (status) params.append('status', status);
 
     fetch(`/api/actions?${params.toString()}`)
       .then((res) => res.json())
@@ -151,12 +53,12 @@ export default function ActionsPage() {
   };
 
   useEffect(() => {
-    fetchData(sortField, sortDirection, search);
-  }, [sortField, sortDirection]);
+    fetchData(sortField, sortDirection, search, statusFilter);
+  }, [sortField, sortDirection, statusFilter]);
 
   const handleSort = (field: string) => {
     if (field === sortField) {
-      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortField(field);
       setSortDirection('asc');
@@ -164,7 +66,7 @@ export default function ActionsPage() {
   };
 
   const handleRefresh = () => {
-    fetchData(sortField, sortDirection, search);
+    fetchData(sortField, sortDirection, search, statusFilter);
   };
 
   const totalOutstanding = actions.filter((a) => a.status_slug === 'outstanding').length;
@@ -172,9 +74,7 @@ export default function ActionsPage() {
   return (
     <div className="container my-4">
       <div className="d-flex justify-content-between align-items-center mb-2">
-        <h5>
-          <i className="bi bi-building me-2" /> Q A & Z Limited <span className="text-muted">#1153</span>
-        </h5>
+        <h5>📋 List of Actions</h5>
         <button className="btn btn-outline-success btn-sm">Help</button>
       </div>
 
@@ -199,7 +99,9 @@ export default function ActionsPage() {
 
       <div className="d-md-flex justify-content-between align-items-center mb-3 gap-2">
         <div className="input-group w-50">
-          <span className="input-group-text bg-white"><i className="bi bi-search" /></span>
+          <span className="input-group-text bg-white">
+            <i className="bi bi-search" />
+          </span>
           <input
             type="text"
             className="form-control"
@@ -207,7 +109,7 @@ export default function ActionsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') fetchData(sortField, sortDirection, search);
+              if (e.key === 'Enter') fetchData(sortField, sortDirection, search, statusFilter);
             }}
           />
         </div>
@@ -218,9 +120,35 @@ export default function ActionsPage() {
           <button className="btn btn-outline-secondary" onClick={() => handleSort('id')}>
             <i className="bi bi-sort-down" /> Sort by ID ({sortDirection})
           </button>
-          <button className="btn btn-outline-secondary">
-            <i className="bi bi-funnel" /> Filter (1)
+          <button className="btn btn-outline-secondary" onClick={() => setShowFilter(true)}>
+            <i className="bi bi-funnel" /> Filter
           </button>
+        </div>
+      </div>
+
+      {/* Slide-in Filter Panel */}
+      <div className={`offcanvas offcanvas-end ${showFilter ? 'show' : ''}`} style={{ visibility: showFilter ? 'visible' : 'hidden' }}>
+        <div className="offcanvas-header">
+          <h5 className="offcanvas-title">Filter</h5>
+          <button type="button" className="btn-close" onClick={() => setShowFilter(false)}></button>
+        </div>
+        <div className="offcanvas-body">
+          <div className="mb-3">
+            <label className="form-label">Status</label>
+            <select
+              className="form-select"
+              value={statusFilter}
+              onChange={(e) => {
+                const value = e.target.value;
+                setStatusFilter(value);
+                setShowFilter(false); // ✅ closes the sidebar
+              }}
+            >
+              <option value="">All</option>
+              <option value="outstanding">Outstanding</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -236,7 +164,6 @@ export default function ActionsPage() {
               <th onClick={() => handleSort('completed_at')} style={{ cursor: 'pointer' }}>Completed date/time</th>
               <th>Status</th>
               <th>Assigned to</th>
-              <th>Options</th>
             </tr>
           </thead>
           <tbody>
@@ -258,9 +185,6 @@ export default function ActionsPage() {
                     ? `${action.assigned_user.first_name ?? ''} ${action.assigned_user.last_name ?? ''}`
                     : <span className="text-muted fst-italic">Unassigned</span>}
                 </td>
-                <td>
-                  <button className="btn btn-sm btn-outline-secondary">...</button>
-                </td>
               </tr>
             ))}
           </tbody>
@@ -269,4 +193,3 @@ export default function ActionsPage() {
     </div>
   );
 }
-
