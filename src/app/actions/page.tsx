@@ -1,3 +1,4 @@
+// app/actions/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -32,12 +33,17 @@ export default function ActionsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [showFilter, setShowFilter] = useState(false);
 
+  const businessId = '1153';
+  const userId = '163';
+
   const fetchData = async () => {
     const params = new URLSearchParams({
       page: page.toString(),
       perPage: '10',
       sortField,
       sortDirection,
+      businessId,
+      userId,
     });
     if (search) params.append('search', search);
     if (statusFilter) params.append('status', statusFilter);
