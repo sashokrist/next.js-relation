@@ -14,75 +14,98 @@ export async function GET(req: Request) {
   const assigned = url.searchParams.get('assigned')?.toLowerCase();
 
   const sortMap: Record<string, any> = {
-  id: { id: sortDirection },
-  business_name: { business: { business_name: sortDirection } },
-  process_description: { action_process: { description: sortDirection } },
-  description: { description: sortDirection },
-  due_at: { due_at: sortDirection },
-  completed_at: { completed_at: sortDirection },
-  status_slug: { status: { name: sortDirection } },
-  assigned_user_id: { assigned_user: { first_name: sortDirection } },
-};
-
+    id: { id: sortDirection },
+    business_name: { business: { business_name: sortDirection } },
+    process_description: { action_process: { description: sortDirection } },
+    description: { description: sortDirection },
+    due_at: { due_at: sortDirection },
+    completed_at: { completed_at: sortDirection },
+    status_slug: { status: { name: sortDirection } },
+    assigned_user_id: { assigned_user: { first_name: sortDirection } },
+  };
 
   const orderBy = sortMap[sortField] ?? { id: sortDirection };
 
-  const where: any = {
-    ...(status && { status_slug: status }),
-    ...(search && {
-      OR: [
-        /^\d+$/.test(search) ? { id: { equals: Number(search) } } : {},
-        {
-          business: {
-            business_name: {
-              contains: search,
-              mode: 'insensitive',
-            },
-          },
+  // Combined OR conditions
+  const orConditions: any[] = [];
+
+if (search) {
+  const searchLC = search.toLowerCase();
+
+  if (/^\d+$/.test(searchLC)) {
+    orConditions.push({ id: Number(searchLC) });
+  }
+
+  orConditions.push(
+    {
+      business: {
+        business_name: {
+          contains: searchLC,
         },
-        {
-          description: {
-            contains: search,
-            mode: 'insensitive',
-          },
-        },
-        {
-          action_process: {
-            description: {
-              contains: search,
-              mode: 'insensitive',
-            },
-          },
-        },
-        {
-          assigned_user: {
-            OR: [
-              {
-                first_name: {
-                  contains: search,
-                  mode: 'insensitive',
-                },
-              },
-              {
-                last_name: {
-                  contains: search,
-                  mode: 'insensitive',
-                },
-              },
-            ],
-          },
-        },
-      ],
-    }),
-    ...(assigned && {
-      assigned_user: {
-        OR: [
-          { first_name: { contains: assigned, mode: 'insensitive' } },
-          { last_name: { contains: assigned, mode: 'insensitive' } },
-        ],
       },
-    }),
-  };
+    },
+    {
+      description: {
+        contains: searchLC,
+      },
+    },
+    {
+      action_process: {
+        description: {
+          contains: searchLC,
+        },
+      },
+    },
+    {
+      assigned_user: {
+        is: {
+          first_name: {
+            contains: searchLC,
+          },
+        },
+      },
+    },
+    {
+      assigned_user: {
+        is: {
+          last_name: {
+            contains: searchLC,
+          },
+        },
+      },
+    }
+  );
+}
+
+if (assigned) {
+  const assignedLC = assigned.toLowerCase();
+
+  orConditions.push(
+    {
+      assigned_user: {
+        is: {
+          first_name: {
+            contains: assignedLC,
+          },
+        },
+      },
+    },
+    {
+      assigned_user: {
+        is: {
+          last_name: {
+            contains: assignedLC,
+          },
+        },
+      },
+    }
+  );
+}
+
+const where = {
+  ...(status && { status_slug: status }),
+  ...(orConditions.length > 0 && { OR: orConditions }),
+};
 
   try {
     const [actions, totalCount, totalCompleted] = await Promise.all([
