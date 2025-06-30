@@ -1,4 +1,3 @@
-// app/actions/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -31,6 +30,7 @@ export default function ActionsPage() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [assignedFilter, setAssignedFilter] = useState('');
   const [showFilter, setShowFilter] = useState(false);
 
   const businessId = '1153';
@@ -47,6 +47,7 @@ export default function ActionsPage() {
     });
     if (search) params.append('search', search);
     if (statusFilter) params.append('status', statusFilter);
+    if (assignedFilter) params.append('assigned', assignedFilter);
 
     const res = await fetch(`/api/actions?${params.toString()}`);
     const data = await res.json();
@@ -72,25 +73,26 @@ export default function ActionsPage() {
 
   return (
     <div className="container my-4">
-      {/* Top Bar with Business and User Info */}
-<div className="d-flex justify-content-between align-items-center mb-3 p-3 border-bottom">
-  <div className="d-flex align-items-center gap-2">
-    <i className="fas fa-building text-secondary bg-light p-2 rounded" />
-    <div>
-      <strong>Q A &amp; Z Limited</strong> <span className="text-muted">#1153</span>
-    </div>
-  </div>
-  <div className="text-end">
-    <div><strong>Test Test</strong></div>
-    <small className="text-muted">User Id: #163</small>
-  </div>
-</div>
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-center mb-3 p-3 border-bottom">
+        <div className="d-flex align-items-center gap-2">
+          <i className="fas fa-building text-secondary bg-light p-2 rounded" />
+          <div>
+            <strong>Q A &amp; Z Limited</strong> <span className="text-muted">#1153</span>
+          </div>
+        </div>
+        <div className="text-end">
+          <div><strong>Test Test</strong></div>
+          <small className="text-muted">User Id: #163</small>
+        </div>
+      </div>
 
       <div className="d-flex justify-content-between align-items-center mb-2">
         <h5>📋 List of Actions</h5>
         <button className="btn btn-outline-success btn-sm">Help</button>
       </div>
 
+      {/* Stats */}
       <div className="row g-3 mb-4">
         <div className="col-md-6">
           <div className="card shadow-sm border-start border-4 border-warning">
@@ -116,6 +118,7 @@ export default function ActionsPage() {
         </div>
       </div>
 
+      {/* Top Controls */}
       <div className="d-md-flex justify-content-between align-items-center mb-3 gap-2">
         <div className="input-group w-50">
           <span className="input-group-text bg-white">
@@ -160,7 +163,6 @@ export default function ActionsPage() {
               onChange={(e) => {
                 setStatusFilter(e.target.value);
                 setPage(1);
-                setShowFilter(false);
               }}
             >
               <option value="">All</option>
@@ -168,23 +170,42 @@ export default function ActionsPage() {
               <option value="completed">Completed</option>
             </select>
           </div>
+
+          <div className="mb-3">
+            <label className="form-label">Assigned To</label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="e.g. John, Smith"
+              value={assignedFilter}
+              onChange={(e) => setAssignedFilter(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setPage(1);
+                  setShowFilter(false);
+                  fetchData();
+                }
+              }}
+            />
+          </div>
         </div>
       </div>
 
+      {/* Table */}
       <div className="table-responsive">
         <table className="table table-bordered table-hover align-middle">
           <thead className="table-light">
-            <tr>
-              <th onClick={() => handleSort('id')} style={{ cursor: 'pointer' }}>Id</th>
-              <th>Business</th>
-              <th>Process</th>
-              <th>Description</th>
-              <th>Due</th>
-              <th>Completed</th>
-              <th>Status</th>
-              <th>Assigned</th>
-            </tr>
-          </thead>
+          <tr>
+            <th onClick={() => handleSort('id')} style={{ cursor: 'pointer' }}>Id</th>
+            <th onClick={() => handleSort('business_name')} style={{ cursor: 'pointer' }}>Business</th>
+            <th onClick={() => handleSort('process_description')} style={{ cursor: 'pointer' }}>Process</th>
+            <th onClick={() => handleSort('description')} style={{ cursor: 'pointer' }}>Description</th>
+            <th onClick={() => handleSort('due_at')} style={{ cursor: 'pointer' }}>Due</th>
+            <th onClick={() => handleSort('completed_at')} style={{ cursor: 'pointer' }}>Completed</th>
+            <th onClick={() => handleSort('status_slug')} style={{ cursor: 'pointer' }}>Status</th>
+            <th onClick={() => handleSort('assigned_user_id')} style={{ cursor: 'pointer' }}>Assigned</th>
+          </tr>
+        </thead>
           <tbody>
             {actions.map((action) => (
               <tr key={action.id}>
@@ -206,17 +227,55 @@ export default function ActionsPage() {
         </table>
       </div>
 
-      <nav className="d-flex justify-content-center mt-4">
-        <ul className="pagination">
-          {[...Array(totalPages)].map((_, i) => (
-            <li key={i} className={`page-item ${page === i + 1 ? 'active' : ''}`}>
-              <button className="page-link" onClick={() => setPage(i + 1)}>
-                {i + 1}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      {/* Pagination */}
+      {/* Pagination */}
+<nav className="d-flex justify-content-center mt-4">
+  <ul className="pagination flex-wrap justify-content-center">
+    {/* Previous */}
+    <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
+      <button className="page-link" onClick={() => setPage(page - 1)} disabled={page === 1}>
+        &laquo;
+      </button>
+    </li>
+
+    {/* First Page */}
+    {page > 3 && (
+      <>
+        <li className="page-item">
+          <button className="page-link" onClick={() => setPage(1)}>1</button>
+        </li>
+        {page > 4 && <li className="page-item disabled"><span className="page-link">...</span></li>}
+      </>
+    )}
+
+    {/* Dynamic range around current page */}
+    {Array.from({ length: totalPages }, (_, i) => i + 1)
+      .filter(p => p >= page - 2 && p <= page + 2)
+      .map((p) => (
+        <li key={p} className={`page-item ${p === page ? 'active' : ''}`}>
+          <button className="page-link" onClick={() => setPage(p)}>{p}</button>
+        </li>
+      ))}
+
+    {/* Last Page */}
+    {page < totalPages - 2 && (
+      <>
+        {page < totalPages - 3 && <li className="page-item disabled"><span className="page-link">...</span></li>}
+        <li className="page-item">
+          <button className="page-link" onClick={() => setPage(totalPages)}>{totalPages}</button>
+        </li>
+      </>
+    )}
+
+    {/* Next */}
+    <li className={`page-item ${page === totalPages ? 'disabled' : ''}`}>
+      <button className="page-link" onClick={() => setPage(page + 1)} disabled={page === totalPages}>
+        &raquo;
+      </button>
+    </li>
+  </ul>
+</nav>
+
     </div>
   );
 }
